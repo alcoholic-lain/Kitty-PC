@@ -8,9 +8,23 @@ computer and handles input and optional screen streaming.
 
 ## App previews
 
-| Touchpad | Keyboard |
-| --- | --- |
-| ![Kitty PC touchpad profile](previews/app-touchpad.png) | ![Kitty PC keyboard profile](previews/app-keyboard.png) |
+Use the large touchpad area to move the PC pointer. Tap to click, use two-finger
+gestures to scroll or right-click, or use the dedicated click buttons.
+
+![Kitty PC touchpad profile](Kitty-PC/previews/app-touchpad.png)
+
+Tap the "Tap to type..." field to open the typing bar and your phone keyboard.
+Text you enter is sent to the PC, and the bar also gives quick access to gallery
+and clipboard actions.
+
+![Kitty PC typing input](Kitty-PC/previews/app-type-input.png)
+
+Kitty PC aims to make your phone a flexible wireless companion for your
+computer, combining pointer control, text entry, screen streaming, and
+customizable controller layouts. The included templates are starting points
+for different tasks and can be adapted to your needs.
+
+![Kitty PC controller template previews](Kitty-PC/previews/template_previews.png)
 
 ## Requirements
 
@@ -78,20 +92,21 @@ With Android platform-tools installed and USB debugging enabled, you can
 instead install the APK from PowerShell at the project root:
 
 ```powershell
-adb install -r .\app\build\outputs\apk\debug\app-debug.apk
+adb install -r .\Kitty-PC\app\build\outputs\apk\debug\app-debug.apk
 ```
 
 To build a fresh debug APK locally:
 
 ```powershell
+Set-Location .\Kitty-PC
 .\gradlew.bat assembleDebug
 ```
 
 The APK is written to
-`app/build/outputs/apk/debug/app-debug.apk`.
+`Kitty-PC/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Repository layout
 
-- `app/` — Android app (Kotlin and Jetpack Compose)
+- `Kitty-PC/app/` — Android app (Kotlin and Jetpack Compose)
 - `server/` — Python remote-control, input, and screen-stream server
-- `tools/templates/` — controller template definitions and checks
+- `Kitty-PC/tools/templates/` — controller template definitions and checks
