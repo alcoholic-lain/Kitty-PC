@@ -1,0 +1,10 @@
+[project]
+name = "server"
+version = "0.2.0"
+requires-python = ">=3.14"
+dependencies = [
+    "pynput>=1.8.2",
+    "mss>=9.0",
+    "pillow>=10.0",
+    "vgamepad>=0.1.0; sys_platform == 'win32'",
+]

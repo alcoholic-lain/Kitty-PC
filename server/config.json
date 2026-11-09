@@ -1,0 +1,14 @@
+{
+  "host": "0.0.0.0",
+  "udp_port": 5005,
+  "tcp_port": 5005,
+  "stream_port": 5006,
+  "token": "change-me",
+  "transports": "udp,tcp",
+  "backend": "auto",
+  "idle_release": 5.0,
+  "stream": true,
+  "stream_fps": 15,
+  "stream_width": 1280,
+  "stream_quality": 60
+}
