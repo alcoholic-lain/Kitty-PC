@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -170,7 +171,8 @@ private fun ElementView(
     val resize by rememberUpdatedState(onResize)
     val end by rememberUpdatedState(onEnd)
 
-    val shape = e.shape.toShape()
+    val typeLauncher = !editing && e.kind == Kind.TYPEBOX
+    val shape = if (typeLauncher) RoundedCornerShape(24.dp) else e.shape.toShape()
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
     val custom = e.color != 0L
@@ -201,8 +203,8 @@ private fun ElementView(
             .size(rect.w.dp, rect.h.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(shape)
-            .background(fill.copy(alpha = e.alpha))
-            .border(if (marked) 2.dp else 1.dp, border, shape)
+            .background(if (typeLauncher) Color.Transparent else fill.copy(alpha = e.alpha))
+            .border(if (typeLauncher) 0.dp else if (marked) 2.dp else 1.dp, border, shape)
             .pointerInput(pressable) {
                 if (pressable) {
                     awaitEachGesture {
@@ -237,7 +239,7 @@ private fun ElementView(
                 ElementLabel(e.label, scheme.onSurfaceVariant, faint = true)
             }
             e.kind == Kind.KEYBOARD -> OnScreenKeyboard(c)
-            e.kind == Kind.TYPEBOX -> TypeLauncher()
+            e.kind == Kind.TYPEBOX -> TypeLauncher(base, shape, e.alpha)
             else -> ElementLabel(e.label, labelColor, e.isZone())
         }
         if (editing && selected) {

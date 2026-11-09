@@ -7,6 +7,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
@@ -33,28 +36,32 @@ class MainActivity : ComponentActivity() {
         val profiles = ProfilesState(prefs)
         setContent {
             RemoteTheme(settings.theme, settings.overrides) {
-                CompositionLocalProvider(LocalSettings provides settings, LocalProfiles provides profiles) {
-                    Scaffold(Modifier.fillMaxSize()) { pad ->
-                        var session by remember { mutableStateOf<Session?>(null) }
-                        var showSettings by remember { mutableStateOf(false) }
+                SharedTransitionLayout {
+                    CompositionLocalProvider(LocalComposerSharedTransition provides this) {
+                        CompositionLocalProvider(LocalSettings provides settings, LocalProfiles provides profiles) {
+                            Scaffold(Modifier.fillMaxSize()) { pad ->
+                                var session by remember { mutableStateOf<Session?>(null) }
+                                var showSettings by remember { mutableStateOf(false) }
 
-                        // The connection belongs to the session, not to a screen: opening Settings from
-                        // the remote must not close it.
-                        fun endSession() {
-                            session?.client?.close()
-                            session = null
-                        }
-                        DisposableEffect(Unit) { onDispose { session?.client?.close() } }
+                                // The connection belongs to the session, not to a screen: opening Settings from
+                                // the remote must not close it.
+                                fun endSession() {
+                                    session?.client?.close()
+                                    session = null
+                                }
+                                DisposableEffect(Unit) { onDispose { session?.client?.close() } }
 
-                        val base = Modifier.padding(pad).consumeWindowInsets(pad)
-                        // Forms lift above the keyboard. The remote does NOT: its board keeps its size
-                        // and the Type bar rides on top of the keyboard instead (see Composer.kt).
-                        val form = base.imePadding().padding(16.dp)
-                        val cur = session
-                        when {
-                            showSettings -> SettingsScreen(form, onBack = { showSettings = false })
-                            cur == null -> ConnectScreen(form, onSettings = { showSettings = true }) { session = it }
-                            else -> RemoteScreen(cur, base, onExit = { endSession() }, onSettings = { showSettings = true })
+                                val base = Modifier.padding(pad).consumeWindowInsets(pad)
+                                // Forms lift above the keyboard. The remote does NOT: its board keeps its size
+                                // and the Type bar rides on top of the keyboard instead (see Composer.kt).
+                                val form = base.imePadding().padding(16.dp)
+                                val cur = session
+                                when {
+                                    showSettings -> SettingsScreen(form, onBack = { showSettings = false })
+                                    cur == null -> ConnectScreen(form, onSettings = { showSettings = true }) { session = it }
+                                    else -> RemoteScreen(cur, base, onExit = { endSession() }, onSettings = { showSettings = true })
+                                }
+                            }
                         }
                     }
                 }

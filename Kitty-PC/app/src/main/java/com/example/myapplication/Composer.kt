@@ -5,12 +5,16 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,9 +40,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /*
@@ -64,29 +68,60 @@ class ComposerState {
 }
 
 val LocalComposer = staticCompositionLocalOf { ComposerState() }
+val LocalComposerSharedTransition = staticCompositionLocalOf<SharedTransitionScope?> { null }
+private const val TYPE_INPUT_SHARED_KEY = "type-input-field"
 
 /** What a Type box looks like on the board: a tap target that opens the composer. */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun TypeLauncher() {
+fun TypeLauncher(background: Color, shape: androidx.compose.ui.graphics.Shape, alpha: Float) {
     val composer = LocalComposer.current
-    Box(
-        Modifier
-            .fillMaxSize()
-            .clickable { composer.show() },
-        contentAlignment = Alignment.CenterStart,
+    val sharedTransition = LocalComposerSharedTransition.current
+    AnimatedVisibility(
+        visible = !composer.open,
+        enter = EnterTransition.None,
+        exit = ExitTransition.None,
     ) {
-        Text(
-            "Tap to type…",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 14.dp),
-        )
+        val visibilityScope = this
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clickable { composer.show() },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            val sharedModifier = if (sharedTransition != null) {
+                with(sharedTransition) {
+                    Modifier.sharedElement(
+                        sharedContentState = rememberSharedContentState(TYPE_INPUT_SHARED_KEY),
+                        animatedVisibilityScope = visibilityScope,
+                        boundsTransform = { _, _ -> tween(170, easing = FastOutSlowInEasing) },
+                    )
+                }
+            } else Modifier
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .then(sharedModifier)
+                    .clip(shape)
+                    .background(background.copy(alpha = alpha))
+                    .border(2.dp, MaterialTheme.colorScheme.primary, shape),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    "Tap to type…",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                )
+            }
+        }
     }
 }
 
 /** The composer bar, the dimmed backdrop and the picture preview. Put it last inside a Box that fills the screen. */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
     val context = LocalContext.current
@@ -119,7 +154,6 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
         if (state.open) {
             text = ""
             imeSeen = false
-            delay(60)
             runCatching { focus.requestFocus() }
             keyboard?.show()
         } else {
@@ -147,9 +181,10 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
     AnimatedVisibility(
         visible = state.open,
         modifier = Modifier.align(Alignment.BottomCenter),
-        enter = slideInVertically(tween(180)) { it } + fadeIn(tween(180)),
-        exit = slideOutVertically(tween(140)) { it } + fadeOut(tween(140)),
+        enter = fadeIn(tween(90)),
+        exit = fadeOut(tween(70)),
     ) {
+        val visibilityScope = this
         val shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
         Column(
             Modifier
@@ -190,11 +225,21 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
                 AssistChip(onClick = { c.key("esc") }, label = { Text("Esc") })
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val sharedTransition = LocalComposerSharedTransition.current
+                val sharedModifier = if (sharedTransition != null) {
+                    with(sharedTransition) {
+                        Modifier.sharedElement(
+                            sharedContentState = rememberSharedContentState(TYPE_INPUT_SHARED_KEY),
+                            animatedVisibilityScope = visibilityScope,
+                            boundsTransform = { _, _ -> tween(170, easing = FastOutSlowInEasing) },
+                        )
+                    }
+                } else Modifier
                 OutlinedTextField(
                     value = text,
                     onValueChange = { type(it) },
                     placeholder = { Text("Type here, it appears on the PC…") },
-                    modifier = Modifier.weight(1f).focusRequester(focus),
+                    modifier = Modifier.weight(1f).focusRequester(focus).then(sharedModifier),
                     shape = RoundedCornerShape(24.dp),
                     maxLines = 4,
                     keyboardOptions = KeyboardOptions(

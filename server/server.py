@@ -73,6 +73,8 @@ MAX_UPLOAD = 40 * 1024 * 1024                           # refuse anything bigger
 
 LOG_FILE = Path(__file__).with_name("server.log")      # `kps -l` streams this file
 
+CURSOR_OVERLAY_VISIBLE = False
+
 
 def log(*a):
     line = f"{time.strftime('%H:%M:%S')} " + " ".join(str(x) for x in a)
@@ -283,6 +285,95 @@ class PynputBackend(Backend):
         self.buttons_down.clear()
 
 
+class WindowsCursorOverlay:
+    """Draw a click-through desktop cursor when Windows reports no visible native cursor."""
+
+    def __init__(self):
+        self._ready = threading.Event()
+        self._error = None
+        self._thread = threading.Thread(target=self._run, name="cursor-overlay", daemon=True)
+        self._thread.start()
+        if not self._ready.wait(5):
+            raise TimeoutError("desktop cursor overlay did not initialize")
+        if self._error:
+            raise RuntimeError(f"desktop cursor overlay failed: {self._error}") from self._error
+
+    def _run(self):
+        import ctypes
+        import tkinter as tk
+        from ctypes import wintypes
+
+        class Point(ctypes.Structure):
+            _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+
+        class CursorInfo(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.DWORD),
+                ("flags", wintypes.DWORD),
+                ("hCursor", wintypes.HANDLE),
+                ("ptScreenPos", Point),
+            ]
+
+        try:
+            user32 = ctypes.windll.user32
+            user32.GetCursorInfo.argtypes = [ctypes.POINTER(CursorInfo)]
+            user32.GetCursorInfo.restype = wintypes.BOOL
+            user32.GetCursorPos.restype = wintypes.BOOL
+            user32.GetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int]
+            user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
+            user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
+            user32.SetWindowLongPtrW.restype = ctypes.c_ssize_t
+            user32.SetWindowPos.argtypes = [
+                wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+                ctypes.c_int, ctypes.c_int, wintypes.UINT,
+            ]
+            user32.SetWindowPos.restype = wintypes.BOOL
+
+            key_color = "#010203"
+            root = tk.Tk()
+            root.overrideredirect(True)
+            root.attributes("-topmost", True)
+            root.attributes("-transparentcolor", key_color)
+            root.configure(bg=key_color)
+            canvas = tk.Canvas(
+                root, width=18, height=25, bg=key_color, highlightthickness=0,
+            )
+            canvas.pack()
+            canvas.create_polygon(
+                1, 1, 1, 19, 6, 14, 10, 23, 13, 22, 9, 13, 17, 13,
+                fill="white", outline="#111111", width=1,
+            )
+            root.update_idletasks()
+
+            hwnd = user32.GetParent(root.winfo_id()) or root.winfo_id()
+            ex_style = user32.GetWindowLongPtrW(hwnd, -20)
+            user32.SetWindowLongPtrW(hwnd, -20, ex_style | 0x20 | 0x80 | 0x08000000)
+            self._ready.set()
+
+            def update_cursor():
+                global CURSOR_OVERLAY_VISIBLE
+                info = CursorInfo()
+                info.cbSize = ctypes.sizeof(CursorInfo)
+                point = Point()
+                if user32.GetCursorPos(ctypes.byref(point)) and user32.GetCursorInfo(ctypes.byref(info)):
+                    if info.flags & 0x00000001:
+                        root.withdraw()
+                        CURSOR_OVERLAY_VISIBLE = False
+                    else:
+                        root.deiconify()
+                        CURSOR_OVERLAY_VISIBLE = bool(user32.SetWindowPos(
+                            hwnd, -1, point.x, point.y, 18, 25, 0x0010 | 0x0040,
+                        ))
+                root.after(16, update_cursor)
+
+            root.after(0, update_cursor)
+            root.mainloop()
+        except Exception as e:
+            self._error = e
+            self._ready.set()
+            log("desktop cursor overlay error:", e)
+
+
 class WindowsBackend(PynputBackend):
     """pynput for keys, SendInput-style relative mouse (games see it), virtual Xbox 360 pad."""
 
@@ -302,6 +393,8 @@ class WindowsBackend(PynputBackend):
                 pass
         super().__init__()
         self._user32 = ctypes.windll.user32
+        self._user32.ShowCursor.argtypes = [ctypes.c_int]
+        self._user32.ShowCursor.restype = ctypes.c_int
         self.pad = None
         try:
             import vgamepad as vg          # pip install vgamepad (sets up the ViGEmBus driver)
@@ -310,14 +403,32 @@ class WindowsBackend(PynputBackend):
             log("virtual gamepad ready")
         except Exception as e:
             log("gamepad disabled (needs vgamepad + ViGEmBus):", e)
+        self._ensure_cursor_visible()
+        try:
+            self.cursor_overlay = WindowsCursorOverlay()
+            log("desktop cursor safety net ready")
+        except Exception as e:
+            self.cursor_overlay = None
+            log("desktop cursor safety net unavailable:", e)
+
+    def _ensure_cursor_visible(self):
+        count = self._user32.ShowCursor(False)
+        if count >= 0:
+            self._user32.ShowCursor(True)
+            return
+        count = self._user32.ShowCursor(True)
+        while count < 0:
+            count = self._user32.ShowCursor(True)
 
     def move_to_pixel(self, x, y):
         self._user32.SetCursorPos(int(x), int(y))           # absolute, in real screen pixels
+        self._ensure_cursor_visible()
 
     def move(self, dx, dy):
         ix, iy = self._whole(dx, dy)
         if ix or iy:
             self._user32.mouse_event(0x0001, ix, iy, 0, 0)   # MOUSEEVENTF_MOVE = relative
+            self._ensure_cursor_visible()
 
     def button_down(self, button):
         if button not in self.buttons_down:
@@ -539,13 +650,57 @@ class Streamer:
     def frame_source(self, width, quality):
         """Called once per client thread: mss must be used from the thread that made it."""
         import mss
-        from PIL import Image
-        sct = mss.mss()
+        from PIL import Image, ImageDraw
+        sct = mss.mss(with_cursor=sys.platform.startswith("linux"))
         monitor = sct.monitors[1]           # primary monitor
+        cursor_pos = None
+        user32 = None
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+
+            class Point(ctypes.Structure):
+                _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+
+            cursor_pos = Point()
+            user32 = ctypes.windll.user32
+            user32.GetCursorPos.restype = wintypes.BOOL
 
         def grab():
             shot = sct.grab(monitor)
             img = Image.frombytes("RGB", shot.size, shot.rgb)
+            if (
+                cursor_pos is not None
+                and not CURSOR_OVERLAY_VISIBLE
+                and user32.GetCursorPos(ctypes.byref(cursor_pos))
+            ):
+                # The local cursor can be hidden while its position remains valid; keep the remote pointer visible.
+                scale_x = img.width / monitor["width"]
+                scale_y = img.height / monitor["height"]
+                x = round((cursor_pos.x - monitor["left"]) * scale_x)
+                y = round((cursor_pos.y - monitor["top"]) * scale_y)
+                if 0 <= x < img.width and 0 <= y < img.height:
+                    scale = max(0.6, min(1.25, scale_x))
+                    outer = [
+                        (x, y), (x, y + round(21 * scale)),
+                        (x + round(5 * scale), y + round(15 * scale)),
+                        (x + round(9 * scale), y + round(24 * scale)),
+                        (x + round(12 * scale), y + round(23 * scale)),
+                        (x + round(8 * scale), y + round(13 * scale)),
+                        (x + round(16 * scale), y + round(13 * scale)),
+                    ]
+                    inner = [
+                        (x + round(2 * scale), y + round(4 * scale)),
+                        (x + round(2 * scale), y + round(17 * scale)),
+                        (x + round(6 * scale), y + round(12 * scale)),
+                        (x + round(10 * scale), y + round(21 * scale)),
+                        (x + round(11 * scale), y + round(20 * scale)),
+                        (x + round(7 * scale), y + round(11 * scale)),
+                        (x + round(14 * scale), y + round(11 * scale)),
+                    ]
+                    draw = ImageDraw.Draw(img)
+                    draw.polygon(outer, fill="black")
+                    draw.polygon(inner, fill="white")
             if img.width > width:
                 img = img.resize((width, round(img.height * width / img.width)))
             buf = io.BytesIO()
