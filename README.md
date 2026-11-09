@@ -11,20 +11,20 @@ computer and handles input and optional screen streaming.
 Use the large touchpad area to move the PC pointer. Tap to click, use two-finger
 gestures to scroll or right-click, or use the dedicated click buttons.
 
-![Kitty PC touchpad profile](Kitty-PC/previews/app-touchpad.png)
+<img src="Kitty-PC/previews/app-touchpad.png" alt="Kitty PC touchpad profile" width="320">
 
 Tap the "Tap to type..." field to open the typing bar and your phone keyboard.
 Text you enter is sent to the PC, and the bar also gives quick access to gallery
 and clipboard actions.
 
-![Kitty PC typing input](Kitty-PC/previews/app-type-input.png)
+<img src="Kitty-PC/previews/app-type-input.png" alt="Kitty PC typing input" width="320">
 
 Kitty PC aims to make your phone a flexible wireless companion for your
 computer, combining pointer control, text entry, screen streaming, and
 customizable controller layouts. The included templates are starting points
 for different tasks and can be adapted to your needs.
 
-![Kitty PC controller template previews](Kitty-PC/previews/template_previews.png)
+<img src="Kitty-PC/previews/template_previews.png" alt="Kitty PC controller template previews" width="720">
 
 ## Requirements
 
