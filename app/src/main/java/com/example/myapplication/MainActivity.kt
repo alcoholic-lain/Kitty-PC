@@ -244,7 +244,7 @@ fun RemoteScreen(s: Session, modifier: Modifier, onExit: () -> Unit, onSettings:
                 ) {
                     if (!fullscreen) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { scope.launch { drawer.open() } }) { Text("☰  Menu") }
+                            TextButton(onClick = { scope.launch { drawer.open() } }) { Text("Menu") }
                             LatencyBadge(c.latencyMs)
                         }
                     }

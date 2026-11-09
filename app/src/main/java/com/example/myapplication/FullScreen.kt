@@ -48,14 +48,14 @@ fun FullScreenRemote(screen: ScreenStream?, c: UdpClient, onExit: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (expanded) {
-                AssistChip(onClick = onExit, label = { Text("✕ Exit") })
+                AssistChip(onClick = onExit, label = { Text("Exit") })
                 AssistChip(
                     onClick = { settings.saveScreenTouch(!settings.screenTouch) },
-                    label = { Text(if (settings.screenTouch) "👆 Touch" else "🖱 Trackpad") },
+                    label = { Text(if (settings.screenTouch) "Touch" else "Trackpad") },
                 )
-                AssistChip(onClick = { composer.show() }, label = { Text("⌨ Type") })
+                AssistChip(onClick = { composer.show() }, label = { Text("Type") })
             } else {
-                AssistChip(onClick = { expanded = true }, label = { Text("⋯") })
+                AssistChip(onClick = { expanded = true }, label = { Text("More") })
             }
         }
     }

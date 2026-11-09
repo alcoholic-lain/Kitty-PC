@@ -76,7 +76,7 @@ fun TypeLauncher() {
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
-            "⌨  Tap to type…",
+            "Tap to type…",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             maxLines = 1,
@@ -171,7 +171,7 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
                     onClick = {
                         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
-                    label = { Text("🖼  Gallery") },
+                    label = { Text("Gallery") },
                 )
                 AssistChip(
                     onClick = {
@@ -183,9 +183,9 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
                             else -> Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    label = { Text("📋  Clipboard") },
+                    label = { Text("Clipboard") },
                 )
-                AssistChip(onClick = { c.key("backspace") }, label = { Text("⌫") })
+                AssistChip(onClick = { c.key("backspace") }, label = { Text("Backspace") })
                 AssistChip(onClick = { c.key("tab") }, label = { Text("Tab") })
                 AssistChip(onClick = { c.key("esc") }, label = { Text("Esc") })
             }
@@ -205,7 +205,7 @@ fun BoxScope.ComposerOverlay(state: ComposerState, c: UdpClient, s: Session) {
                     // Send on the phone keyboard = Enter on the PC, and the box starts again
                     keyboardActions = KeyboardActions(onSend = { c.key("enter"); text = "" }),
                 )
-                FilledTonalButton(onClick = { c.key("enter"); text = "" }) { Text("↵") }
+                FilledTonalButton(onClick = { c.key("enter"); text = "" }) { Text("Enter") }
             }
         }
     }

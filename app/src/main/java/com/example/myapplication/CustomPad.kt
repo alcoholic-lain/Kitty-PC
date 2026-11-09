@@ -192,7 +192,7 @@ fun CustomPadMode(c: UdpClient, s: Session, fullscreen: Boolean, onFullscreen: (
                     }
                     AssistChip(
                         onClick = { clearSelection(); store.setLandscape(active.id, !active.landscape) },
-                        label = { Text(if (active.landscape) "↻ Landscape" else "↻ Portrait") },
+                        label = { Text(if (active.landscape) "Landscape" else "Portrait") },
                     )
                     AssistChip(onClick = { sheet = Sheet.PROFILES }, label = { Text("Profiles") })
                     AssistChip(
