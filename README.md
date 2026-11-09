@@ -62,7 +62,7 @@ uv lock                 # Re-lock dependencies after editing pyproject.toml
 
 ## Install the Android app
 
-Download `Kitty-PC.apk` from the
+Download `app-debug.apk` from the
 [latest GitHub release](https://github.com/alcoholic-lain/Kitty-PC/releases/latest)
 and install it on your Android device. Depending on your Android version, you
 may need to allow installing apps from the browser or file manager used to
