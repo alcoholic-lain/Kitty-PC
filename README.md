@@ -12,19 +12,11 @@ Use the large touchpad area to move the PC pointer. Tap to click, use two-finger
 gestures to scroll or right-click, or use the dedicated click buttons.
 
 Tap the "Tap to type..." field to open the typing bar and your phone keyboard.
-Text you enter is sent to the PC, and the bar also gives quick access to gallery
-and clipboard actions.
+The field smoothly transforms into the typing composer as the native keyboard
+slides up. Text you enter is sent to the PC, and the composer also gives quick
+access to gallery and clipboard actions.
 
-<table>
-  <tr>
-    <th>Touchpad</th>
-    <th>Typing input</th>
-  </tr>
-  <tr>
-    <td><img src="https://raw.githubusercontent.com/alcoholic-lain/Kitty-PC/main/Kitty-PC/previews/app-touchpad.png" alt="Kitty PC touchpad profile" width="240" height="533"></td>
-    <td><img src="https://raw.githubusercontent.com/alcoholic-lain/Kitty-PC/main/Kitty-PC/previews/app-type-input.png" alt="Kitty PC typing input" width="240" height="533"></td>
-  </tr>
-</table>
+<img src="https://raw.githubusercontent.com/alcoholic-lain/Kitty-PC/main/Kitty-PC/previews/composer-transition.gif" alt="Kitty PC typing field transforming into the composer as the keyboard opens" width="360">
 
 Kitty PC aims to make your phone a flexible wireless companion for your
 computer, combining pointer control, text entry, screen streaming, and
