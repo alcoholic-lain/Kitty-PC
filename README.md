@@ -6,6 +6,12 @@ full-screen remote-desktop controls, keyboard input, gamepad-style controls,
 customizable profiles, and image upload. A companion Python server runs on the
 computer and handles input and optional screen streaming.
 
+## App previews
+
+| Touchpad | Keyboard |
+| --- | --- |
+| ![Kitty PC touchpad profile](previews/app-touchpad.png) | ![Kitty PC keyboard profile](previews/app-keyboard.png) |
+
 ## Requirements
 
 - **Computer/server:** Python 3.14 or newer and [uv](https://docs.astral.sh/uv/)
