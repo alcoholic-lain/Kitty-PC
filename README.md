@@ -79,6 +79,21 @@ uv run server.py --help # Show server options
 uv lock                 # Re-lock dependencies after editing pyproject.toml
 ```
 
+### Install the `kps` PowerShell command (Windows)
+
+Run [`installer/KpsInstaller.exe`](./installer/KpsInstaller.exe). Select the
+folder containing `server.py` when prompted. The installer adds `kps` to the
+current Windows user's Windows PowerShell and PowerShell 7 profiles; close and
+reopen PowerShell to use it. It does not require administrator access.
+
+The command supports `kps -o` to toggle the server, `kps -r` to restart it,
+`kps -s` to check its status, and `kps -l` to stream `server.log`. The `uv`
+command must be installed and available on `PATH` to start the server.
+
+To rebuild the installer from its source files, run
+`.\installer\build.ps1` in PowerShell on Windows with the .NET Framework C#
+compiler installed.
+
 ## Install the Android app
 
 Download `app-debug.apk` from the
