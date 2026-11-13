@@ -118,32 +118,63 @@ internal static class KpsInstaller
         string profileLine = ". '" + escapedProfileScript + "'";
         string documentsDirectory = Environment.GetFolderPath(
             Environment.SpecialFolder.MyDocuments);
+        foreach (string profilePath in GetProfilePaths(documentsDirectory))
+        {
+            EnsureProfileContainsLine(profilePath, profileLine);
+        }
+    }
+
+    private static string[] GetProfilePaths(string documentsDirectory)
+    {
         string[] profileDirectories =
         {
             Path.Combine(documentsDirectory, "WindowsPowerShell"),
             Path.Combine(documentsDirectory, "PowerShell")
         };
+        string[] profileFileNames =
+        {
+            "profile.ps1",
+            "Microsoft.PowerShell_profile.ps1"
+        };
+        string[] profilePaths = new string[profileDirectories.Length * profileFileNames.Length];
+        int pathIndex = 0;
 
         foreach (string profileDirectory in profileDirectories)
         {
-            Directory.CreateDirectory(profileDirectory);
-            string profilePath = Path.Combine(profileDirectory, "profile.ps1");
-            string existingContents = File.Exists(profilePath)
-                ? File.ReadAllText(profilePath)
-                : String.Empty;
-
-            if (existingContents.IndexOf(profileLine, StringComparison.OrdinalIgnoreCase) < 0)
+            foreach (string profileFileName in profileFileNames)
             {
-                string separator = existingContents.Length > 0 &&
-                    !existingContents.EndsWith("\r\n", StringComparison.Ordinal) &&
-                    !existingContents.EndsWith("\n", StringComparison.Ordinal)
-                    ? Environment.NewLine
-                    : String.Empty;
-                File.AppendAllText(
-                    profilePath,
-                    separator + profileLine + Environment.NewLine,
-                    new UTF8Encoding(false));
+                profilePaths[pathIndex++] = Path.Combine(profileDirectory, profileFileName);
             }
         }
+
+        return profilePaths;
+    }
+
+    private static void EnsureProfileContainsLine(string profilePath, string profileLine)
+    {
+        string profileDirectory = Path.GetDirectoryName(profilePath);
+        if (!String.IsNullOrEmpty(profileDirectory))
+        {
+            Directory.CreateDirectory(profileDirectory);
+        }
+
+        string existingContents = File.Exists(profilePath)
+            ? File.ReadAllText(profilePath)
+            : String.Empty;
+
+        if (existingContents.IndexOf(profileLine, StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return;
+        }
+
+        string separator = existingContents.Length > 0 &&
+            !existingContents.EndsWith("\r\n", StringComparison.Ordinal) &&
+            !existingContents.EndsWith("\n", StringComparison.Ordinal)
+            ? Environment.NewLine
+            : String.Empty;
+        File.AppendAllText(
+            profilePath,
+            separator + profileLine + Environment.NewLine,
+            new UTF8Encoding(false));
     }
 }

@@ -83,8 +83,10 @@ uv lock                 # Re-lock dependencies after editing pyproject.toml
 
 Run [`installer/KpsInstaller.exe`](./installer/KpsInstaller.exe). Select the
 folder containing `server.py` when prompted. The installer adds `kps` to the
-current Windows user's Windows PowerShell and PowerShell 7 profiles; close and
-reopen PowerShell to use it. It does not require administrator access.
+current Windows user's all-hosts and default console profiles for Windows
+PowerShell and PowerShell 7. It creates the default `$PROFILE` file if needed;
+close and reopen PowerShell to use `kps`. It does not require administrator
+access.
 
 The command supports `kps -o` to toggle the server, `kps -r` to restart it,
 `kps -s` to check its status, and `kps -l` to stream `server.log`. The `uv`
