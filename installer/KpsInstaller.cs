@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -20,9 +21,19 @@ internal static class KpsInstaller
             }
 
             Install(serverDirectory);
-            MessageBox.Show(
+            bool profileCanLoad = EnsureExecutionPolicy();
+            string message =
                 "kps is installed for your Windows PowerShell and PowerShell 7 profiles.\r\n" +
-                "Close and reopen PowerShell, then run: kps -s",
+                "Close and reopen PowerShell, then run: kps -s";
+            if (!profileCanLoad)
+            {
+                message += "\r\n\r\nPowerShell may block the profile script. To allow locally installed scripts for your account, run:\r\n" +
+                    "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned\r\n" +
+                    "A managed policy may require help from your administrator.";
+            }
+
+            MessageBox.Show(
+                message,
                 "Kitty-PC kps installer",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -34,6 +45,83 @@ internal static class KpsInstaller
                 "Kitty-PC kps installer",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
+        }
+    }
+
+    private static bool EnsureExecutionPolicy()
+    {
+        string policy;
+        try
+        {
+            policy = RunPowerShell("(Get-ExecutionPolicy).ToString()");
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (policy.Equals("RemoteSigned", StringComparison.OrdinalIgnoreCase) ||
+            policy.Equals("Unrestricted", StringComparison.OrdinalIgnoreCase) ||
+            policy.Equals("Bypass", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        DialogResult result = MessageBox.Show(
+            "PowerShell's effective execution policy is " + policy + ". This blocks the profile script that defines kps.\r\n\r\n" +
+            "Set the policy to RemoteSigned for your Windows account only? This does not change the machine-wide policy.",
+            "PowerShell execution policy",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+        if (result != DialogResult.Yes)
+        {
+            return false;
+        }
+
+        try
+        {
+            RunPowerShell(
+                "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force; " +
+                "if ((Get-ExecutionPolicy).ToString() -ne 'RemoteSigned') { exit 1 }");
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string RunPowerShell(string command)
+    {
+        string powerShellPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.System),
+            @"WindowsPowerShell\v1.0\powershell.exe");
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = powerShellPath,
+            Arguments = "-NoLogo -NoProfile -NonInteractive -Command \"" + command + "\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        using (Process process = Process.Start(startInfo))
+        {
+            if (process == null)
+            {
+                throw new InvalidOperationException("Could not start Windows PowerShell.");
+            }
+
+            string output = process.StandardOutput.ReadToEnd();
+            process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException("Windows PowerShell returned exit code " + process.ExitCode + ".");
+            }
+
+            return output.Trim();
         }
     }
 
@@ -112,7 +200,7 @@ internal static class KpsInstaller
         string scriptContents = scriptTemplate.Replace(
             "__KPS_SERVER_DIRECTORY__",
             escapedServerDirectory);
-        File.WriteAllText(profileScript, scriptContents, new UTF8Encoding(false));
+        File.WriteAllText(profileScript, scriptContents, new UTF8Encoding(true));
 
         string escapedProfileScript = profileScript.Replace("'", "''");
         string profileLine = ". '" + escapedProfileScript + "'";
